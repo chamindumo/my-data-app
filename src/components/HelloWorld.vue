@@ -25,7 +25,7 @@
 
     <div id="map"></div>
     <el-drawer title="Search Results" :visible.sync="drawerVisible" size="50%">
-      <div v-if="20">
+      <div v-if="mergedPaginatedPlaces.length > 0">
         <h3>Search Results</h3>
         <table>
           <thead>
@@ -37,7 +37,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(place, index) in mergedPaginatedPlaces" :key="index">
+            <tr v-for="(place, index) in paginatedPlaces" :key="index">
               <td>
                 <img :src="place.icon" alt="Place Icon" style="width: 20px; height: 20px; margin-right: 5px;" />
                 {{ place.name }}
@@ -110,6 +110,7 @@ export default {
       drawerVisible: false,
       wishlistDrawerVisible: false,
       mergedPaginatedPlaces: [],
+      endlocation:null,
     };
   },
   watch: {
@@ -117,23 +118,15 @@ export default {
   },
   computed: {
     paginatedPlaces() {
-      if (!this.placesResponse) return [];
-
       const startIndex = (this.currentPage - 1) * this.resultsPerPage;
-      let endIndex = startIndex + this.resultsPerPage;
+    let endIndex = startIndex + this.resultsPerPage;
 
-      const totalResults = this.placesResponse.results.length;
-      if (endIndex > totalResults) {
-        endIndex = totalResults;
-      }
+    const totalResults = this.mergedPaginatedPlaces.length;
+    if (endIndex > totalResults) {
+      endIndex = totalResults;
+    }
 
-      return this.placesResponse.results
-        .map(place => ({
-          ...place,
-          distance: this.calculateDistance(this.fromLocation, place.geometry.location),
-        }))
-        .sort((a, b) => a.distance - b.distance)
-        .slice(startIndex, endIndex);
+    return this.mergedPaginatedPlaces.slice(startIndex, endIndex);
     },
     paginatedPlaces1() {
       if (!this.placesResponse1) return [];
@@ -224,11 +217,22 @@ console.log(paginatedPlaces)
         ...place,
         distance: this.calculateDistance(this.fromLocation, place.geometry.location),
       }));
-
+     
       const mergedResults = [...calculatedPlacesResponse, ...calculatedPlacesResponse1];
+
+      const filteredResults = mergedResults
+      .filter(place =>
+      this.isBeforeOrAfterLocation(place.geometry.location, this.fromLocation, this.endlocation)
+      
+      )
+      .filter((place, index, self) =>
+        index === self.findIndex(p => p.name === place.name)
+      ); 
+
+    console.log(filteredResults)
       console.log(mergedResults.sort((a, b) => a.distance - b.distance))
       
-      return this.mergedPaginatedPlaces= mergedResults.sort((a, b) => a.distance - b.distance);
+      return this.mergedPaginatedPlaces= filteredResults.sort((a, b) => a.distance - b.distance);
     },
     openDrawer(type) {
       if (type === 'searchResults') {
@@ -295,7 +299,8 @@ console.log(paginatedPlaces)
         console.error('Please select a choice.');
         return;
       }
-
+      const middleLocation = this.calculateMiddleLocation(this.fromLocation,this.location3);
+      console.log(middleLocation)
       const apiRequest1 = axios.get(
         `https://localhost:7041/api/Product/Google?location1=${this.location1}&location2=${this.location2}&Choice=${this.selectedChoice}`
       );
@@ -318,6 +323,26 @@ console.log(paginatedPlaces)
           console.error('Error fetching data:', error);
         });
 
+        if (this.location3) {
+        axios
+          .get(
+            `https://maps.googleapis.com/maps/api/geocode/json?address=${this.location3}&key=AIzaSyAoS8LDAxSJ78ycaq2diQewFx7L3d0qUWE`
+          )
+          .then(response => {
+            if (response.data.results.length > 0) {
+              const location = response.data.results[0].geometry.location;
+              this.endlocation = location;
+              console.log(this.endlocation)
+            } else {
+              console.error('No results found for location1.');
+            }
+          })
+          .catch(error => {
+            console.error('Error geocoding location1:', error);
+          });
+
+        }
+
       if (this.location1) {
         axios
           .get(
@@ -327,6 +352,7 @@ console.log(paginatedPlaces)
             if (response.data.results.length > 0) {
               const location = response.data.results[0].geometry.location;
               this.fromLocation = location;
+              console.log(this.fromLocation)
             } else {
               console.error('No results found for location1.');
             }
@@ -334,6 +360,7 @@ console.log(paginatedPlaces)
           .catch(error => {
             console.error('Error geocoding location1:', error);
           });
+          
         this.drawerVisible = true;
       } else {
         console.error('Please enter a valid location1.');
@@ -348,7 +375,41 @@ console.log(paginatedPlaces)
         console.error('Cannot show directions without fromLocation.');
       }
     },
-   
+
+    isBeforeOrAfterLocation(location, location1, location3) {
+  const distance1 = this.calculateDistance(location3, location1);
+  const distance2 = this.calculateDistance(this.fromLocation, location3);
+  const distanceToLocation = this.calculateDistance(location3, location);
+
+  console.log(`Distance from fromLocation to location1: ${distance1}`);
+  console.log(`Distance from fromLocation to location3: ${distance2}`);
+  console.log(`Distance from fromLocation to location: ${distanceToLocation}`);
+
+  // Check if the location is located one before or after the fromLocation
+  const results= distanceToLocation <= distance1;
+  return results;
+},
+    calculateMiddleLocation(location1,location3) {
+      if (location1 && location3) {
+        console.log(this.fromLocation);
+        console.log(location3);
+        const lat1 = parseFloat(location1.split(',')[0]);
+        const lon1 = parseFloat(location1.split(',')[1]);
+
+        const lat3 = parseFloat(location3.split(',')[0]);
+        const lon3 = parseFloat(location3.split(',')[1]);
+
+        const middleLocation = {
+          lat: (lat1 + lat3) / 2,
+          lng: (lon1 + lon3) / 2,
+        };
+
+        return middleLocation;
+      } else {
+        console.error('Please enter valid locations for location1 and location3.');
+        return null;
+      }
+    },
     changePage(direction) {
       if (direction === -1 && this.currentPage > 1) {
         this.currentPage -= 1;
