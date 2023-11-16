@@ -3,6 +3,10 @@ import App from './App.vue'
 import ElementUI from 'element-ui';
 import 'element-ui/lib/theme-chalk/index.css';
 import axios from 'axios';
+import Router from 'vue-router';
+import FirstPage from '@/components/FirstPage.vue'; // import your login component
+import HelloWorld from '@/components/HelloWorld.vue'; // import the component with your existing code
+
 import {
   Pagination,
   Dialog,
@@ -157,9 +161,36 @@ Vue.use(ElementUI);
 Vue.prototype.$axios = axios;
 
 Vue.use(ElementUI);
+Vue.use(Router);
 
 Vue.config.productionTip = false
 
+const router = new Router({
+  routes: [
+    {
+      path: '/',
+      name: 'Login',
+      component: FirstPage,
+    },
+    {
+      path: '/main',
+      name: 'MainPage',
+      component: HelloWorld,
+      meta: { requiresAuth: true }, // this metadata indicates that the route requires authentication
+    },
+  ],
+});
+router.beforeEach((to, from, next) => {
+  const isLoggedIn = /* check if user is logged in */ true; // You need a function to check if the user is logged in
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
+
+  if (requiresAuth && !isLoggedIn) {
+    next('/');
+  } else {
+    next();
+  }
+});
 new Vue({
+  router,
   render: h => h(App),
 }).$mount('#app')
