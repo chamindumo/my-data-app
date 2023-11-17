@@ -332,7 +332,7 @@ export default {
       const request = {
         location,
         radius: 10000, // 10 km
-        types: [this.location],
+        types: [this.$route.query.placeType],
       };
  
       this.placesService.nearbySearch(request, (results, status) => {
