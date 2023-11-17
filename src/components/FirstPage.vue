@@ -9,6 +9,16 @@
         <label for="destination">Destination:</label>
         <input type="text" id="destination" v-model="destinationInput" />
       </div>
+      <div>
+      <label for="placeType">Select Place Type:</label>
+      <select id="placeType" v-model="selectedPlaceType">
+        <option value="gas_station">Gas Station</option>
+        <option value="hotel">Hotel</option>
+        <option value="atm">ATM</option>
+        <option value="restaurant">Restaurant</option>
+        <!-- Add other place types as needed -->
+      </select>
+    </div>
       <button @click="submit">Calculate Route and Gas Stations</button>
       
 
@@ -16,6 +26,8 @@
   </template>
    
   <script>
+  import { mapActions, mapGetters } from 'vuex';
+
   export default {
     data() {
       return {
@@ -29,15 +41,23 @@
         drawerVisible: false, // Add this line to define the drawerVisible property
         wishlistDrawerVisible: false,
         wishlist: [],
+        selectedPlaceType: 'gas_station', // Default selected place type
+
       };
     },
+    computed: {
+    ...mapGetters(['getSelectedPlaceType']),
+  },
+
    methods:{
+    ...mapActions(['updateSelectedPlaceType']),
+
     submit(){
       const origin = encodeURIComponent(this.originInput);
       const destination = encodeURIComponent(this.destinationInput);
       this.$router.push({
         path: '/main',
-        query: { origin, destination }, // Pass parameters as query string
+        query: { origin, destination,placeType: this.selectedPlaceType }, // Pass parameters as query string
       });
       console.log(origin,destination)
     }

@@ -6,6 +6,10 @@ import axios from 'axios';
 import Router from 'vue-router';
 import FirstPage from '@/components/FirstPage.vue'; // import your login component
 import HelloWorld from '@/components/HelloWorld.vue'; // import the component with your existing code
+import WishList from '@/components/WishList.vue'
+import CreateNewWishlist from '@/components/CreateNewWishlist.vue'
+
+import store from './store'; // Import the Vuex store
 
 import {
   Pagination,
@@ -178,6 +182,18 @@ const router = new Router({
       component: HelloWorld,
       meta: { requiresAuth: true }, // this metadata indicates that the route requires authentication
     },
+    {
+      path: '/wishlist',
+      name: 'WishList',
+      component: WishList,
+      meta: { requiresAuth: true }, // this metadata indicates that the route requires authentication
+    },
+    {
+      path: '/newwishlist',
+      name: 'CreateNewWishlist',
+      component: CreateNewWishlist,
+      meta: { requiresAuth: true }, // this metadata indicates that the route requires authentication
+    },
   ],
 });
 router.beforeEach((to, from, next) => {
@@ -192,5 +208,6 @@ router.beforeEach((to, from, next) => {
 });
 new Vue({
   router,
+  store, // Inject the Vuex store into the Vue instance
   render: h => h(App),
 }).$mount('#app')
